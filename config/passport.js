@@ -71,14 +71,9 @@ passport.use('local.signin', new LocalStrategy({
 			return done(null, false, {message: 'User does not exist'});
 			//nicio eroare, dar exista deja un email
 		}
-		var newUser = new User();
-		newUser.email = email;
-		newUser.password = newUser.encryptPassword(password);
-		newUser.save(function(err, result){
-			if(err){
-				return done(err);
-			}
-			return done(null, newUser);
-		});
+		if(!user.validPassword(password)){
+			return done(null, false, {message: 'Wrong password'});
+		}
+		return done(null, user);
 	});
 }));

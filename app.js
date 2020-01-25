@@ -4,13 +4,17 @@ var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 var expressHbs = require('express-handlebars');
-var indexRouter = require('./routes/index');
 var mongoose = require('mongoose');
 var session = require('express-session');
 var passport = require('passport');
 //user auth, user management
 var flash = require('connect-flash');
 var validator = require('express-validator');
+var MongoStore = require('connect-mongo')(session);
+
+
+var indexRouter = require('./routes/index');
+var userRoutes = require('./routes/user');
 
 var app = express();
 
@@ -26,12 +30,25 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(validator());
 app.use(cookieParser());
-app.use(session({secret: 'mysupersecret', resave: false, saveUninitialized: false}));
+app.use(session({
+	secret: 'mysupersecret', 
+	resave: false, 
+	saveUninitialized: false,
+	store: new MongoStore({ mongooseConnection: mongoose.connection}),
+	cookie: { maxAge: 180 * 60 * 1000 }
+}));
 app.use(flash());
 app.use(passport.initialize());
 app.use(passport.session());
 app.use(express.static(path.join(__dirname, 'public')));
 
+app.use(function(req, res, next){
+	res.locals.login = req.isAuthenticated();
+	res.locals.session = req.session;
+	next();
+});
+
+app.use('/user', userRoutes);
 app.use('/', indexRouter);
 
 // catch 404 and forward to error handler
